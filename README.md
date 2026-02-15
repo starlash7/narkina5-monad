@@ -1,6 +1,8 @@
 # NARKINA5 MONAD
 
-![NARKINA5 MONAD](docs/narkina5-monad-cover.png)
+<p align="center">
+  <img src="docs/narkina5-monad-cover.png" alt="NARKINA5 MONAD" width="720" />
+</p>
 
 Monad-native AI Cell elimination arena with nad.fun graduation flow.
 
