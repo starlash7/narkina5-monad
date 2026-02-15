@@ -1,17 +1,355 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { usePrivy } from '@privy-io/react-auth';
+import { WalletIcon, LogoutIcon, MenuIcon, CloseIcon } from './Icons';
 
 export function Header() {
-  return (
-    <header className="app-header">
-      <div className="brand">
-        <span className="brand-mark">◎</span>
-        <strong>NARKINA5 MONAD</strong>
-      </div>
-      <nav className="nav-links">
-        <Link className="nav-link" to="/">Home</Link>
-        <Link className="nav-link" to="/arena">Arena</Link>
-        <Link className="nav-link" to="/about">About</Link>
-      </nav>
-    </header>
-  );
+    const location = useLocation();
+    const { login, logout, authenticated, user } = usePrivy();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    const isActive = (path: string) => location.pathname === path;
+
+    const navLinkStyle = (path: string) => ({
+        fontFamily: 'inherit',
+        fontSize: '0.875rem',
+        fontWeight: 500,
+        color: isActive(path) ? '#7c3aed' : '#6c5f8b',
+        textDecoration: 'none',
+        padding: '0.5rem 1rem',
+        borderRadius: '0.375rem',
+        transition: 'all 0.2s ease',
+        position: 'relative' as const,
+        background: isActive(path) ? 'rgba(124, 58, 237, 0.1)' : 'transparent',
+    });
+
+    const mobileNavLinkStyle = (path: string) => ({
+        fontFamily: 'inherit',
+        fontSize: '1rem',
+        fontWeight: 500,
+        color: isActive(path) ? '#7c3aed' : '#2a1f45',
+        textDecoration: 'none',
+        padding: '1rem 1.5rem',
+        display: 'block',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+        background: isActive(path) ? 'rgba(124, 58, 237, 0.1)' : 'transparent',
+    });
+
+    const getDisplayName = () => {
+        if (user?.wallet?.address) {
+            const address = user.wallet.address;
+            return `${address.slice(0, 4)}...${address.slice(-4)}`;
+        }
+        if (user?.email?.address) {
+            return user.email.address.split('@')[0];
+        }
+        if (user?.google?.email) {
+            return user.google.email.split('@')[0];
+        }
+        if (user?.twitter?.username) {
+            return `@${user.twitter.username}`;
+        }
+        return 'Connected';
+    };
+
+    const navLinks = [
+        { path: '/', label: 'Home' },
+        { path: '/pnl-arena', label: 'PnL Arena' },
+        { path: '/pnl-arena/live', label: 'Arena Live' },
+        { path: '/about', label: 'About' },
+    ];
+
+    return (
+        <header style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 50,
+            borderBottom: '1px solid rgba(124, 58, 237, 0.2)',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(12px)',
+        }}>
+            <div style={{
+                maxWidth: '80rem',
+                margin: '0 auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '1rem 1.5rem',
+            }}>
+                {/* Logo */}
+                <Link to="/" style={{
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                }}>
+                    <span style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '2.5rem',
+                        height: '2.5rem',
+                        background: 'linear-gradient(135deg, #7c3aed, #9f67ff)',
+                        borderRadius: '0.5rem',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        color: '#2a1f45',
+                    }}>
+                        {">_"}
+                    </span>
+                    <span style={{
+                        fontSize: '1.25rem',
+                        fontWeight: 'bold',
+                        background: 'linear-gradient(135deg, #7c3aed, #9f67ff)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                    }}>
+                        NARKINA5
+                    </span>
+                </Link>
+
+                {/* Desktop Navigation */}
+                <nav style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    background: 'rgba(124, 58, 237, 0.08)',
+                    padding: '0.25rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                }} className="hide-mobile">
+                    {navLinks.map((link) => (
+                        <Link key={link.path} to={link.path} style={navLinkStyle(link.path)}>
+                            {link.label}
+                        </Link>
+                    ))}
+                </nav>
+
+                {/* Desktop Wallet Connection */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="hide-mobile">
+                    {authenticated ? (
+                        <>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '0.375rem',
+                                background: 'rgba(34, 197, 94, 0.1)',
+                                border: '1px solid rgba(34, 197, 94, 0.3)',
+                            }}>
+                                <div style={{
+                                    width: '0.5rem',
+                                    height: '0.5rem',
+                                    borderRadius: '50%',
+                                    background: '#22c55e',
+                                    animation: 'pulse 2s infinite',
+                                }} />
+                                <span style={{
+                                    fontFamily: 'inherit',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 500,
+                                    color: '#22c55e',
+                                }}>
+                                    {getDisplayName()}
+                                </span>
+                            </div>
+                            <button
+                                onClick={logout}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontFamily: 'inherit',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 500,
+                                    color: '#6c5f8b',
+                                    background: 'transparent',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.375rem',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                                    e.currentTarget.style.color = '#ef4444';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                                    e.currentTarget.style.color = '#6c5f8b';
+                                }}
+                            >
+                                <LogoutIcon />
+                                Logout
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={login}
+                            className="btn-glow"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                fontFamily: 'inherit',
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
+                                color: '#2a1f45',
+                                background: 'linear-gradient(135deg, #7c3aed, #9f67ff)',
+                                border: 'none',
+                                padding: '0.5rem 1.25rem',
+                                borderRadius: '0.375rem',
+                                cursor: 'pointer',
+                                boxShadow: '0 0 20px rgba(124, 58, 237, 0.3)',
+                            }}
+                        >
+                            <WalletIcon />
+                            Connect Wallet
+                        </button>
+                    )}
+                </div>
+
+                {/* Mobile Menu Button */}
+                <button
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    className="hide-desktop"
+                    style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#2a1f45',
+                        cursor: 'pointer',
+                        padding: '0.5rem',
+                    }}
+                >
+                    {mobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
+                </button>
+            </div>
+
+            {/* Mobile Menu */}
+            {mobileMenuOpen && (
+                <div
+                    className="animate-slide-down hide-desktop"
+                    style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        background: 'rgba(255, 255, 255, 0.98)',
+                        borderBottom: '1px solid rgba(124, 58, 237, 0.2)',
+                        backdropFilter: 'blur(12px)',
+                    }}
+                >
+                    <nav style={{ display: 'flex', flexDirection: 'column' }}>
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.path}
+                                to={link.path}
+                                style={mobileNavLinkStyle(link.path)}
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
+                    </nav>
+
+                    <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                        {authenticated ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.75rem 1rem',
+                                    borderRadius: '0.375rem',
+                                    background: 'rgba(34, 197, 94, 0.1)',
+                                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                                }}>
+                                    <div style={{
+                                        width: '0.5rem',
+                                        height: '0.5rem',
+                                        borderRadius: '50%',
+                                        background: '#22c55e',
+                                    }} />
+                                    <span style={{ color: '#22c55e', fontWeight: 500 }}>
+                                        {getDisplayName()}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        logout();
+                                        setMobileMenuOpen(false);
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        fontFamily: 'inherit',
+                                        fontSize: '1rem',
+                                        fontWeight: 500,
+                                        color: '#ef4444',
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        padding: '0.75rem 1rem',
+                                        borderRadius: '0.375rem',
+                                        cursor: 'pointer',
+                                        width: '100%',
+                                    }}
+                                >
+                                    <LogoutIcon />
+                                    Logout
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => {
+                                    login();
+                                    setMobileMenuOpen(false);
+                                }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem',
+                                    fontFamily: 'inherit',
+                                    fontSize: '1rem',
+                                    fontWeight: 500,
+                                    color: '#2a1f45',
+                                    background: 'linear-gradient(135deg, #7c3aed, #9f67ff)',
+                                    border: 'none',
+                                    padding: '0.75rem 1rem',
+                                    borderRadius: '0.375rem',
+                                    cursor: 'pointer',
+                                    width: '100%',
+                                    boxShadow: '0 0 20px rgba(124, 58, 237, 0.3)',
+                                }}
+                            >
+                                <WalletIcon />
+                                Connect Wallet
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+
+                @media (max-width: 768px) {
+                    .hide-mobile { display: none !important; }
+                    .hide-desktop { display: flex !important; }
+                }
+
+                @media (min-width: 769px) {
+                    .hide-desktop { display: none !important; }
+                    .hide-mobile { display: flex !important; }
+                }
+            `}</style>
+        </header>
+    );
 }
