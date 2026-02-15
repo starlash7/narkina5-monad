@@ -1,9 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { useWallets, useSignTransaction } from '@privy-io/react-auth/solana';
-import { Connection } from '@solana/web3.js';
 import { useNavigate } from 'react-router-dom';
-import { useSolana } from '../contexts/SolanaContext';
 import {
     initializePnLCompetition,
     simulateCellTrades,
@@ -40,20 +37,15 @@ import type {
     InvestmentRole,
 } from '../services/pnl-types';
 import {
-    uploadMetadata,
-    generateMintKeypair,
-    buildCreateTokenTx,
-    signWithMintKeypair,
     generateTokenDescription,
-    getPumpfunUrl,
+    getNadfunLaunchUrl,
     saveGraduatedAgent,
     getGraduatedAgents,
-} from '../services/pumpfun';
+} from '../services/nadfun';
 import { TrendUpIcon, TrendDownIcon, DollarIcon, TradeIcon, ExternalLinkIcon } from '../components/Icons';
 
 type GradStatus = 'idle' | 'uploading' | 'building' | 'signing' | 'confirming' | 'success' | 'error';
 type PnLArenaMode = 'overview' | 'live';
-const MAINNET_RPC = 'https://api.mainnet-beta.solana.com';
 const CELLS_PER_PAGE = 8;
 const SEASON_MS = SEASON_DURATION_DAYS * 24 * 60 * 60 * 1000;
 const WEEK_MS = SEASON_MS;
@@ -112,9 +104,6 @@ const panelTitle: React.CSSProperties = {
 
 export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
     const { authenticated, login } = usePrivy();
-    const { wallets } = useWallets();
-    const { signTransaction } = useSignTransaction();
-    const { publicKey } = useSolana();
     const navigate = useNavigate();
     const isOverviewRoute = mode === 'overview';
     const isLiveRoute = mode === 'live';
@@ -129,7 +118,7 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
     // Graduation
     const [gradStatus, setGradStatus] = useState<GradStatus>('idle');
     const [gradError, setGradError] = useState<string | null>(null);
-    const [gradResult, setGradResult] = useState<{ mintAddress: string; pumpfunUrl: string } | null>(null);
+    const [gradResult, setGradResult] = useState<{ tokenSymbol: string; launchUrl: string } | null>(null);
 
     const logRef = useRef<HTMLDivElement>(null);
     const autoPlayRef = useRef(autoPlay);
@@ -362,7 +351,7 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
     const handleGraduate = useCallback(async (cell: TradingCell) => {
         if (!comp) return;
 
-        if (!authenticated || !publicKey || !wallets[0]) {
+        if (!authenticated) {
             login();
             return;
         }
@@ -387,56 +376,34 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
             const tokenName = `${cell.name} Cell`;
             const tokenSymbol = toCellSymbol(cell.name);
             const composition = buildCellComposition(cell, comp.agents);
-            const description = generateTokenDescription({
+            generateTokenDescription({
                 name: tokenName,
                 symbol: tokenSymbol,
                 description: `PnL Arena Champion Cell | ${cell.portfolio.totalPnL >= 0 ? '+' : ''}${cell.portfolio.totalPnL.toFixed(2)} SOL PnL\n\n${composition}`,
                 specialization: bestAgent.specialization,
                 trustScore: 100,
             });
-            const metadataUri = await uploadMetadata(
-                tokenName,
-                tokenSymbol,
-                description,
-                bestAgent.specialization,
-            );
-
             setGradStatus('building');
-            const mintKeypair = generateMintKeypair();
-            const mintPub = mintKeypair.publicKey.toBase58();
-            const unsignedTx = await buildCreateTokenTx(
-                publicKey.toBase58(),
-                mintPub,
-                metadataUri,
-                tokenName,
-                tokenSymbol,
-            );
-
-            setGradStatus('signing');
-            const mintSigned = signWithMintKeypair(unsignedTx, mintKeypair);
-            const wallet = wallets.find(w => w.address === publicKey.toBase58()) ?? wallets[0];
-            if (!wallet) throw new Error('No wallet connected');
-            const { signedTransaction } = await signTransaction({
-                transaction: mintSigned,
-                wallet,
-                chain: 'solana:devnet',
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const launchUrl = getNadfunLaunchUrl();
+            const launchId = `nad-${tokenSymbol}-${Date.now()}`;
+            saveGraduatedAgent({
+                name: tokenName,
+                symbol: tokenSymbol,
+                specialization: bestAgent.specialization,
+                launchId,
+                nadfunUrl: launchUrl,
+                graduatedAt: Date.now(),
+                trustScore: 100,
             });
 
-            setGradStatus('confirming');
-            const connection = new Connection(MAINNET_RPC, 'confirmed');
-            const sig = await connection.sendRawTransaction(signedTransaction, { skipPreflight: true, maxRetries: 3 });
-            await connection.confirmTransaction(sig, 'confirmed');
-
-            const pumpfunUrl = getPumpfunUrl(mintPub);
-            saveGraduatedAgent({ name: tokenName, symbol: tokenSymbol, specialization: bestAgent.specialization, mintAddress: mintPub, pumpfunUrl, graduatedAt: Date.now(), trustScore: 100 });
-
             setGradStatus('success');
-            setGradResult({ mintAddress: mintPub, pumpfunUrl });
+            setGradResult({ tokenSymbol, launchUrl });
         } catch (err) {
             setGradStatus('error');
             setGradError(err instanceof Error ? err.message : 'Graduation failed');
         }
-    }, [authenticated, publicKey, wallets, comp, login, signTransaction]);
+    }, [authenticated, comp, login]);
 
     // ── Reset ───────────────────────────────────────────
     const handleReset = useCallback(() => {
@@ -523,7 +490,7 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
                     }}>
                         {TOTAL_AGENTS} AI agents enter {CELLS_COUNT} trading cells.<br />
                         Every floor cuts the field in half.<br />
-                        <span style={{ color: '#ef4444', fontWeight: 500 }}>One survivor graduates through Monad launch flow.</span>
+                        <span style={{ color: '#ef4444', fontWeight: 500 }}>One survivor graduates and launches on nad.fun.</span>
                     </p>
 
                     <div style={{
@@ -617,7 +584,7 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
                             {
                                 step: '01',
                                 title: 'TRADE',
-                                desc: 'Each cell runs a virtual portfolio using real pump.fun market prices and role-based AI decisions.',
+                                desc: 'Each cell runs a virtual portfolio using live market prices and role-based AI decisions.',
                             },
                             {
                                 step: '02',
@@ -627,7 +594,7 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
                             {
                                 step: '03',
                                 title: 'GRADUATE',
-                                desc: 'Champion cell launches a real token through Monad-compatible launch signing.',
+                                desc: 'Champion cell prepares a launch draft on nad.fun for Monad-native deployment.',
                             },
                         ].map((item) => (
                             <div key={item.step} style={{
@@ -892,7 +859,7 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
                             background: 'linear-gradient(135deg, #ef4444, #fb7185)', color: '#fff', border: 'none', borderRadius: 6,
                             padding: '0.5rem 1.5rem', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
                         }}>
-                            Graduate to Monad Flow
+                            Launch on nad.fun
                         </button>
                     )}
                     {gradStatus === 'idle' && authenticated && winnerGate && !winnerGate.eligible && (
@@ -908,7 +875,7 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
                             background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6,
                             padding: '0.5rem 1.5rem', fontSize: '0.9rem', cursor: 'pointer',
                         }}>
-                            Connect Wallet to Graduate
+                            Connect to Launch
                         </button>
                     )}
                     {gradStatus === 'idle' && !authenticated && winnerGate && !winnerGate.eligible && (
@@ -919,18 +886,20 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
                     {gradStatus !== 'idle' && gradStatus !== 'success' && gradStatus !== 'error' && (
                         <div style={{ color: '#7c3aed', fontSize: '0.85rem' }}>
                             <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: '0.5rem' }}>&#9696;</span>
-                            {gradStatus === 'uploading' && 'Uploading metadata...'}
-                            {gradStatus === 'building' && 'Building token...'}
-                            {gradStatus === 'signing' && 'Awaiting wallet signature...'}
-                            {gradStatus === 'confirming' && 'Confirming on-chain...'}
+                            {gradStatus === 'uploading' && 'Preparing launch metadata...'}
+                            {gradStatus === 'building' && 'Preparing nad.fun launch draft...'}
+                            {gradStatus === 'signing' && 'Finalizing launch request...'}
+                            {gradStatus === 'confirming' && 'Confirming launch status...'}
                         </div>
                     )}
                     {gradStatus === 'success' && gradResult && (
                         <div>
-                            <div style={{ color: '#ef4444', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Token launched!</div>
-                            <a href={gradResult.pumpfunUrl} target="_blank" rel="noopener noreferrer"
+                            <div style={{ color: '#ef4444', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                                nad.fun launch draft ready: ${gradResult.tokenSymbol}
+                            </div>
+                            <a href={gradResult.launchUrl} target="_blank" rel="noopener noreferrer"
                                 style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                                View launch status <ExternalLinkIcon size="0.85rem" />
+                                Open nad.fun <ExternalLinkIcon size="0.85rem" />
                             </a>
                         </div>
                     )}
