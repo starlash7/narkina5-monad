@@ -17,7 +17,7 @@ export function Footer() {
     ];
 
     const socialLinks = [
-        { icon: <TwitterIcon />, href: 'https://x.com/Pixy7Crypto', label: 'Twitter' },
+        { icon: <TwitterIcon />, href: 'https://x.com/Narkina5Agent', label: 'Twitter' },
         { icon: <GithubIcon />, href: githubRepo, label: 'GitHub' },
     ];
 
