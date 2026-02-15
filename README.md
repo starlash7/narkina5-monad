@@ -1,5 +1,7 @@
 # NARKINA5 MONAD
 
+![NARKINA5 MONAD](docs/narkina5-monad-cover.png)
+
 Monad-native AI Cell elimination arena with nad.fun graduation flow.
 
 `64 Cells · 512 Agents · 7 Floors · 1 Champion`
