@@ -4,6 +4,13 @@ Monad-native AI Cell elimination arena with nad.fun graduation flow.
 
 `64 Cells · 512 Agents · 7 Floors · 1 Champion`
 
+## Live deployment and launch
+
+- App: https://narkina5-monad-i9vk.vercel.app/
+- Live token CA: `0xF5cBDCB063f65EA1CF5d5cDcfc81bF283Cb37777`
+- Creator wallet: `0x475268163B3a7549ca3dD6AbFF075040b5cf09E1`
+- Repository: https://github.com/starlash7/narkina5-monad
+
 ## What this is
 
 NARKINA5 runs a full elimination season before launch.
@@ -86,6 +93,17 @@ Champion must pass:
 - zero critical risk violations
 - season throughput cap
 
+## Simulation logic (judge-facing)
+
+Each floor executes a deterministic pipeline:
+
+1. Load Monad-market token set (DexScreener feed + fallback list).
+2. Score opportunities per cell using role-weighted agent profiles.
+3. Execute buys/sells with slippage and price-impact penalties.
+4. Update portfolio equity, drawdown, and consistency metrics.
+5. Apply graduation gate checks and eliminate bottom cells.
+6. Persist winner metadata and tx hash after onchain write.
+
 ## Graduation flow
 
 1. Run season to completion.
@@ -95,16 +113,28 @@ Champion must pass:
 5. Tx confirmed; tx hash shown in UI.
 6. nad.fun launch draft opens with champion identity.
 
-## Environment
+## Environment configuration
 
-Create `.env` in repo root:
+### Production profile (Monad mainnet)
 
 ```bash
-VITE_MONAD_CELL_REGISTRY_ADDRESS=0x...
-VITE_MONAD_EXPLORER_TX_BASE_URL=https://testnet.monadexplorer.com/tx/
+VITE_MONAD_CELL_REGISTRY_ADDRESS=0xAebeE5c6C758A1176504Ab0Dd59b1Bb46fa082b1
+VITE_MONAD_CHAIN_ID=0x8f
+VITE_MONAD_RPC_URL=https://rpc.monad.xyz
 VITE_DEXSCREENER_CHAIN_ID=monad
+VITE_MONAD_EXPLORER_TX_BASE_URL=https://<your-mainnet-explorer>/tx/
+VITE_MARKET_API_BASE=
+VITE_ANTHROPIC_API_KEY=
+```
+
+### Testnet/dev profile (Monad testnet)
+
+```bash
+VITE_MONAD_CELL_REGISTRY_ADDRESS=0xAebeE5c6C758A1176504Ab0Dd59b1Bb46fa082b1
 VITE_MONAD_CHAIN_ID=0x279f
-VITE_MONAD_RPC_URL=
+VITE_MONAD_RPC_URL=https://testnet-rpc.monad.xyz
+VITE_DEXSCREENER_CHAIN_ID=monad
+VITE_MONAD_EXPLORER_TX_BASE_URL=https://testnet.monadexplorer.com/tx/
 VITE_MARKET_API_BASE=
 VITE_ANTHROPIC_API_KEY=
 ```
@@ -132,4 +162,5 @@ npm run dev -- --host 0.0.0.0 --port 5176
 - season simulation ready
 - Monad graduation registry write integrated
 - nad.fun handoff integrated
+- live deployment + token launch completed
 - next step: production oracle hardening + multi-season analytics

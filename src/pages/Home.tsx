@@ -4,7 +4,7 @@ import { CopyIcon, CheckIcon } from '../components/Icons';
 
 export function Home() {
     const [copied, setCopied] = useState(false);
-    const address = 'EaVBaKvaimQs88sNVpjutm2sCxsnyxdR7kQQBxy9Qh24';
+    const address = '0xF5cBDCB063f65EA1CF5d5cDcfc81bF283Cb37777';
 
     const handleCopy = async () => {
         await navigator.clipboard.writeText(address);

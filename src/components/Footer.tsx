@@ -3,7 +3,7 @@ import { TwitterIcon, GithubIcon } from './Icons';
 
 export function Footer() {
     const currentYear = new Date().getFullYear();
-    const githubRepo = 'https://github.com/starlash7/Narkina5';
+    const githubRepo = 'https://github.com/starlash7/narkina5-monad';
 
     const footerLinks = [
         {
@@ -17,7 +17,7 @@ export function Footer() {
     ];
 
     const socialLinks = [
-        { icon: <TwitterIcon />, href: 'https://twitter.com', label: 'Twitter' },
+        { icon: <TwitterIcon />, href: 'https://x.com/Pixy7Crypto', label: 'Twitter' },
         { icon: <GithubIcon />, href: githubRepo, label: 'GitHub' },
     ];
 
