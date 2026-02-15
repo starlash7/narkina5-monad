@@ -41,6 +41,7 @@ import {
     getNadfunLaunchUrl,
     saveGraduatedAgent,
     getGraduatedAgents,
+    recordChampionOnchain,
 } from '../services/nadfun';
 import { TrendUpIcon, TrendDownIcon, DollarIcon, TradeIcon, ExternalLinkIcon } from '../components/Icons';
 
@@ -55,6 +56,8 @@ const GRAD_MAX_DRAWDOWN_PERCENT = 15;
 const GRAD_MIN_CONSISTENCY_PERCENT = 55;
 const GRAD_MAX_WEEKLY = MAX_GRADUATIONS_PER_SEASON;
 const GRAD_RELAX_AFTER_WEEKS = RELAX_GATE_AFTER_SEASONS;
+const MONAD_EXPLORER_TX_BASE_URL = (import.meta.env.VITE_MONAD_EXPLORER_TX_BASE_URL as string | undefined)
+    ?? 'https://testnet.monadexplorer.com/tx/';
 
 interface GraduationGateResult {
     eligible: boolean;
@@ -118,7 +121,7 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
     // Graduation
     const [gradStatus, setGradStatus] = useState<GradStatus>('idle');
     const [gradError, setGradError] = useState<string | null>(null);
-    const [gradResult, setGradResult] = useState<{ tokenSymbol: string; launchUrl: string } | null>(null);
+    const [gradResult, setGradResult] = useState<{ tokenSymbol: string; launchUrl: string; txHash: string | null } | null>(null);
 
     const logRef = useRef<HTMLDivElement>(null);
     const autoPlayRef = useRef(autoPlay);
@@ -376,6 +379,8 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
             const tokenName = `${cell.name} Cell`;
             const tokenSymbol = toCellSymbol(cell.name);
             const composition = buildCellComposition(cell, comp.agents);
+            const seasonId = getCurrentSeasonId();
+
             generateTokenDescription({
                 name: tokenName,
                 symbol: tokenSymbol,
@@ -385,6 +390,17 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
             });
             setGradStatus('building');
             await new Promise((resolve) => setTimeout(resolve, 500));
+
+            setGradStatus('signing');
+            const onchain = await recordChampionOnchain({
+                seasonId,
+                cellName: cell.name,
+                totalPnlSol: cell.portfolio.totalPnL,
+            });
+
+            setGradStatus('confirming');
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
             const launchUrl = getNadfunLaunchUrl();
             const launchId = `nad-${tokenSymbol}-${Date.now()}`;
             saveGraduatedAgent({
@@ -395,10 +411,12 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
                 nadfunUrl: launchUrl,
                 graduatedAt: Date.now(),
                 trustScore: 100,
+                seasonId,
+                onchainTxHash: onchain.txHash,
             });
 
             setGradStatus('success');
-            setGradResult({ tokenSymbol, launchUrl });
+            setGradResult({ tokenSymbol, launchUrl, txHash: onchain.txHash });
         } catch (err) {
             setGradStatus('error');
             setGradError(err instanceof Error ? err.message : 'Graduation failed');
@@ -888,8 +906,8 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
                             <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: '0.5rem' }}>&#9696;</span>
                             {gradStatus === 'uploading' && 'Preparing launch metadata...'}
                             {gradStatus === 'building' && 'Preparing nad.fun launch draft...'}
-                            {gradStatus === 'signing' && 'Finalizing launch request...'}
-                            {gradStatus === 'confirming' && 'Confirming launch status...'}
+                            {gradStatus === 'signing' && 'Requesting Monad wallet signature...'}
+                            {gradStatus === 'confirming' && 'Recording champion on Monad...'}
                         </div>
                     )}
                     {gradStatus === 'success' && gradResult && (
@@ -897,8 +915,18 @@ export function PnLArena({ mode = 'overview' }: { mode?: PnLArenaMode }) {
                             <div style={{ color: '#ef4444', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
                                 nad.fun launch draft ready: ${gradResult.tokenSymbol}
                             </div>
+                            {gradResult.txHash && (
+                                <a
+                                    href={`${MONAD_EXPLORER_TX_BASE_URL}${gradResult.txHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.45rem' }}
+                                >
+                                    View Monad record tx <ExternalLinkIcon size="0.85rem" />
+                                </a>
+                            )}
                             <a href={gradResult.launchUrl} target="_blank" rel="noopener noreferrer"
-                                style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginLeft: gradResult.txHash ? '0.7rem' : 0 }}>
                                 Open nad.fun <ExternalLinkIcon size="0.85rem" />
                             </a>
                         </div>
@@ -1270,6 +1298,10 @@ function getWeekKey(timestamp: number): string {
     const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
     const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
     return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+function getCurrentSeasonId(timestamp = Date.now()): string {
+    return `season-${getWeekKey(timestamp)}`;
 }
 
 function buildCellComposition(cell: TradingCell, agents: Record<string, PnLAgent>): string {

@@ -1,129 +1,133 @@
 # NARKINA5 MONAD
 
-> Autonomous AI Cell Arena for token graduation on Monad
-> `64 Cells · 512 Agents · 7-Floor Season · 1 Champion`
+Monad-native AI Cell elimination arena with nad.fun graduation flow.
 
-## TL;DR
+`64 Cells · 512 Agents · 7 Floors · 1 Champion`
 
-NARKINA5 MONAD turns token selection into a competitive AI tournament.
-Instead of launching first and filtering later, we run a full elimination season and only allow a champion cell to graduate.
+## What this is
 
-## Problem
+NARKINA5 runs a full elimination season before launch.
 
-- Meme token launches optimize attention before quality.
-- Retail users cannot evaluate signal quality quickly.
-- Most launchpads lack an objective, replayable pre-launch filter.
+Instead of launching first and hoping quality appears later, we force AI cells to survive a measurable tournament:
 
-## Solution
+- market decisions under volatility
+- hard risk constraints
+- consistency requirements
+- deterministic elimination rounds
 
-- 512 AI agents are grouped into 64 cells.
-- Cells compete across a 7-floor season.
-- Each floor applies deterministic elimination by portfolio PnL and risk gates.
-- Only the final champion cell becomes launch-eligible.
+Only the final champion cell can graduate.
 
-## Why Monad
+## Why this is a Monad project
 
-- EVM compatibility for fast shipping.
-- High throughput/low latency suitable for simulation-linked execution.
-- Clean path to onchain gate contracts and auditable graduation metadata.
+Monad is used as the execution and proof layer for graduation:
 
-## Core Mechanics
+- champion graduation is written onchain via `CellRegistry`
+- every graduation emits an auditable event
+- each season can be replayed and verified against onchain outputs
+- nad.fun is used as the launch destination for the champion identity
 
-### 1. Season Engine
-
-- Bracket: `64 -> 32 -> 16 -> 8 -> 4 -> 2 -> 1`
-- One season = 7 floors (target cadence: daily floor, weekly champion)
-- Deterministic elimination ensures replayability
-
-### 2. AI Roles per Cell
-
-- `Researcher`: narrative and social catalyst mining
-- `Analyst`: Wyckoff + technical regime validation
-- `Strategist`: allocation and scenario planning
-- `Trader`: execution and edge-cost filtering
-- `RiskManager`: toxicity veto and drawdown defense
-
-### 3. Graduation Gate
-
-Champion must pass all:
-
-- PnL threshold
-- Drawdown limit
-- Consistency threshold
-- Zero critical risk violations
-- Season throughput cap (`max 1 graduation / season window`)
-
-## Architecture
+## Current architecture
 
 ```text
-User/Wallet
-   |
-React App (Home / Arena / About)
-   |
-Arena Engine (season state machine)
- |         |          |
-AI      Market      Monad Adapter
- |         |          |
- -------- Gate + Metadata --------
-              |
-           Monad
+Wallet (EVM/Monad)
+      |
+      v
+React App (Home / PnL Arena / Arena Live / About)
+      |
+      v
+Arena Engine
+ - 64->1 elimination state machine
+ - role-weighted agent decisions
+ - gate scoring (PnL / drawdown / consistency / risk)
+      |
+      +--> Market Adapter (trending + fallback simulation)
+      |
+      +--> Graduation Adapter
+             |- Monad CellRegistry.write(recordChampion)
+             |- local metadata persistence (season + tx hash)
+             |- nad.fun launch handoff
 ```
 
-## What Works Now
+## Onchain components
 
-- [x] Season simulation UI
-- [x] Cell elimination pipeline
-- [x] Agent role/doctrine model
-- [x] Graduation gate evaluation
-- [ ] Full onchain graduation contract write
-- [ ] Production oracle hardening
+`contracts/src/CellRegistry.sol`
 
-## Local Run
+- `recordChampion(bytes32 seasonId, bytes32 cellId, int256 pnl)` writes a champion record
+- emits `ChampionRecorded` event
+- stores record history for season-level retrieval
+
+This gives judges a real onchain artifact per graduation, not only UI state.
+
+## Arena mechanics
+
+### 1. Season structure
+
+- Start: 64 cells (512 total agents)
+- Floors: 7-step elimination bracket
+- Finish: 1 survivor cell
+
+### 2. Agent structure (per cell)
+
+- Researcher
+- Analyst
+- Strategist
+- Trader
+- RiskManager
+
+Each role contributes different decision weight during simulation.
+
+### 3. Graduation gate
+
+Champion must pass:
+
+- minimum PnL threshold
+- max drawdown limit
+- consistency threshold
+- zero critical risk violations
+- season throughput cap
+
+## Graduation flow
+
+1. Run season to completion.
+2. Champion cell appears in Arena Live.
+3. Click `Launch on nad.fun`.
+4. Wallet signs Monad tx to `CellRegistry`.
+5. Tx confirmed; tx hash shown in UI.
+6. nad.fun launch draft opens with champion identity.
+
+## Environment
+
+Create `.env` in repo root:
+
+```bash
+VITE_MONAD_CELL_REGISTRY_ADDRESS=0x...
+VITE_MONAD_EXPLORER_TX_BASE_URL=https://testnet.monadexplorer.com/tx/
+VITE_MONAD_RPC_URL=
+VITE_MARKET_API_BASE=
+VITE_ANTHROPIC_API_KEY=
+```
+
+## Local run
 
 ```bash
 npm install
-npm run dev
+npm run dev -- --host 0.0.0.0 --port 5176
 ```
 
-Open `http://localhost:5173`
+## Judge demo script
 
-## Environment Variables
+1. Open Home.
+2. Enter `PnL Arena` -> go to `Arena Live`.
+3. Run a season until one survivor.
+4. Show gate checks.
+5. Execute graduation.
+6. Show Monad tx link.
+7. Open nad.fun launch handoff.
 
-Create `.env`:
+## Repo status
 
-```bash
-VITE_MONAD_RPC_URL=
-VITE_WALLETCONNECT_PROJECT_ID=
-VITE_ANTHROPIC_API_KEY=
-VITE_MARKET_API_BASE=
-```
-
-## Demo Flow (Judge Script)
-
-1. Open Home and enter Arena.
-2. Initialize season and run floors until champion.
-3. Open champion panel and inspect gate checks.
-4. Show launch eligibility result and metadata payload.
-
-## Token / Revenue Model (Draft)
-
-- Protocol revenue:
-  - graduation processing fee
-  - premium analytics access
-  - strategy API tier
-- Token utility:
-  - staking for arena access tiers
-  - fee discounts
-  - governance over gate parameters
-
-## Security and Risk Notes
-
-- Trade decisions include cost-aware filters (slippage + impact + congestion).
-- Risk manager can veto toxic assets using quality/suspicion checks.
-- Deterministic non-AI fallback path protects runtime continuity.
-
-## Roadmap
-
-- **v0 (Hackathon):** local season + gate + demo-ready UI
-- **v1:** Monad testnet contracts for gate registry and champion metadata
-- **v2:** verifiable simulation proofs and strategy marketplaces
+- UI flow ready
+- season simulation ready
+- Monad graduation registry write integrated
+- nad.fun handoff integrated
+- next step: production oracle hardening + multi-season analytics
