@@ -107,6 +107,13 @@ export function getNadfunLaunchUrl(): string {
 export async function recordChampionOnchain(input: RecordChampionOnchainInput): Promise<RecordChampionOnchainResult> {
     const provider = getProvider();
     const registryAddress = getRegistryAddress();
+    const expectedChainId = (import.meta.env.VITE_MONAD_CHAIN_ID as string | undefined)?.toLowerCase();
+    if (expectedChainId) {
+        const currentChainId = (await provider.request({ method: 'eth_chainId' }) as string).toLowerCase();
+        if (currentChainId !== expectedChainId) {
+            throw new Error(`Wrong network. Expected chain ${expectedChainId}, got ${currentChainId}.`);
+        }
+    }
     const seasonIdHash = keccak256(toHex(input.seasonId));
     const cellIdHash = keccak256(toHex(input.cellName.trim().toUpperCase()));
     const pnlBps = BigInt(Math.round(input.totalPnlSol * 10_000));

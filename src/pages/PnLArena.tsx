@@ -1265,10 +1265,22 @@ function logColor(entry: PnLLogEntry): string {
 
 function generateMockTokens(): PumpToken[] {
     const names = [
-        ['BONK', 'Bonk'], ['WIF', 'dogwifhat'], ['POPCAT', 'Popcat'], ['MEW', 'cat in a dogs world'],
-        ['BOME', 'BOOK OF MEME'], ['SLERF', 'Slerf'], ['MYRO', 'Myro'], ['MOODENG', 'Moo Deng'],
-        ['PNUT', 'Peanut'], ['GOAT', 'Goatseus Maximus'], ['FWOG', 'Fwog'], ['GIGA', 'Giga Chad'],
-        ['TREMP', 'Doland Tremp'], ['BODEN', 'Jeo Boden'], ['MOTHER', 'Mother Iggy'],
+        ['MON', 'Monad'],
+        ['NAD', 'nad.fun'],
+        ['EVMON', 'EVMON Core'],
+        ['ARC', 'Arc Relay'],
+        ['PYRO', 'Pyro Engine'],
+        ['ORBIT', 'Orbit Flow'],
+        ['NOVA', 'Nova Grid'],
+        ['RIFT', 'Rift Signal'],
+        ['VECTOR', 'Vector Labs'],
+        ['QUANT', 'Quant Forge'],
+        ['ZEN', 'Zenith'],
+        ['BYTE', 'BytePulse'],
+        ['MESH', 'Mesh Link'],
+        ['PRIME', 'Prime Loop'],
+        ['STACK', 'StackDrive'],
+        ['LUMA', 'Luma Circuit'],
     ];
 
     return names.map(([symbol, name], i) => ({

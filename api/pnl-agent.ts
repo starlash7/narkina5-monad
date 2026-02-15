@@ -23,15 +23,15 @@ async function callClaude(system: string, user: string, maxTokens = 512): Promis
 // ---------------------------------------------------------------------------
 
 const ROLE_PROMPTS: Record<string, string> = {
-    Researcher: `You are a token researcher at a Narkina5 Trading Desk in the PnL Arena on Solana. Analyze pump.fun tokens and identify the best opportunities. Consider: price momentum, volume, market cap, bonding curve progress, holder count. Be concise and data-driven. Respond with ONLY valid JSON.`,
+    Researcher: `You are a token researcher at a Narkina5 Trading Cell in the Monad PnL Arena. Analyze Monad ecosystem tokens and identify the best opportunities. Consider: price momentum, volume, market cap, liquidity profile, holder quality. Be concise and data-driven. Respond with ONLY valid JSON.`,
 
-    Analyst: `You are a market analyst at a Narkina5 Trading Desk in the PnL Arena on Solana. Provide sentiment scores for tokens. Consider: price trend, volume patterns, market context. Be concise. Respond with ONLY valid JSON.`,
+    Analyst: `You are a market analyst at a Narkina5 Trading Cell in the Monad PnL Arena. Provide sentiment scores for tokens. Consider: price trend, volume patterns, market context. Be concise. Respond with ONLY valid JSON.`,
 
-    Strategist: `You are a portfolio strategist at a Narkina5 Trading Desk in the PnL Arena on Solana. Given research and analysis, determine optimal portfolio allocations. Max 20% per position. Be concise. Respond with ONLY valid JSON.`,
+    Strategist: `You are a portfolio strategist at a Narkina5 Trading Cell in the Monad PnL Arena. Given research and analysis, determine optimal portfolio allocations. Max 20% per position. Be concise. Respond with ONLY valid JSON.`,
 
-    Trader: `You are an execution trader at a Narkina5 Trading Desk in the PnL Arena on Solana. Execute the strategy by determining exact buy/sell orders. Consider current positions and cash balance. Be concise. Respond with ONLY valid JSON.`,
+    Trader: `You are an execution trader at a Narkina5 Trading Cell in the Monad PnL Arena. Execute the strategy by determining exact buy/sell orders. Consider current positions and cash balance. Be concise. Respond with ONLY valid JSON.`,
 
-    RiskManager: `You are a risk manager at a Narkina5 Trading Desk in the PnL Arena on Solana. Review proposed trades and portfolio exposure. Veto any trade exceeding 20% of portfolio or creating excessive concentration. Set stop-losses. Be concise. Respond with ONLY valid JSON.`,
+    RiskManager: `You are a risk manager at a Narkina5 Trading Cell in the Monad PnL Arena. Review proposed trades and portfolio exposure. Veto any trade exceeding 20% of portfolio or creating excessive concentration. Set stop-losses. Be concise. Respond with ONLY valid JSON.`,
 };
 
 // ---------------------------------------------------------------------------
@@ -70,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 `${t.symbol} (${t.mint.slice(0, 8)}...): price=${t.priceSOL.toFixed(6)} SOL, vol24h=$${t.volume24h.toFixed(0)}, change24h=${t.priceChange24h.toFixed(1)}%, mcap=${t.marketCapSOL.toFixed(1)} SOL`
             ).join('\n');
 
-            userPrompt = `Round ${round}. Analyze these pump.fun tokens and pick the top 3 opportunities:\n\n${tokenList}\n\nRespond with JSON: [{"mint":"...","symbol":"...","thesis":"...","confidence":1-10,"targetPriceSOL":0.001}]`;
+            userPrompt = `Round ${round}. Analyze these Monad ecosystem tokens and pick the top 3 opportunities:\n\n${tokenList}\n\nRespond with JSON: [{"mint":"...","symbol":"...","thesis":"...","confidence":1-10,"targetPriceSOL":0.001}]`;
 
         } else if (role === 'Analyst') {
             const tokenList = tokens.slice(0, 10).map(t =>

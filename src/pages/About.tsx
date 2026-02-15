@@ -44,7 +44,7 @@ export function About() {
 
     const techRows = [
         ['Frontend', 'React + TypeScript + Vite'],
-        ['Chain', 'Monad (EVM-compatible) + ethers.js'],
+        ['Chain', 'Monad (EVM-compatible) + viem'],
         ['Wallet', 'Privy auth + signing'],
         ['AI', 'Claude-powered role decisions'],
         ['Market Data', 'DexScreener feed + local fallback'],

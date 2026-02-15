@@ -1,5 +1,5 @@
 {
-  "name": "narkina5-frontend",
+  "name": "narkina5-monad",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,8 +12,6 @@
   },
   "dependencies": {
     "@privy-io/react-auth": "^3.13.1",
-    "@solana-program/memo": "^0.11.0",
-    "@solana/web3.js": "^1.98.4",
     "@tanstack/react-query": "^5.90.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

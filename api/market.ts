@@ -6,10 +6,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const action = req.query.action as string;
+    const chain = ((req.query.chain as string) || process.env.DEXSCREENER_CHAIN_ID || 'monad').toLowerCase();
 
     try {
         if (action === 'trending') {
-            // Fetch trending Solana tokens from DexScreener
+            // Fetch trending tokens from DexScreener for requested chain
             const response = await fetch(
                 'https://api.dexscreener.com/token-boosts/top/v1',
                 { headers: { Accept: 'application/json' } },
@@ -19,12 +20,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
             const data = await response.json();
 
-            // Filter to Solana tokens only, take top 20
-            const solTokens = (data as Array<Record<string, unknown>>)
-                .filter((t) => t.chainId === 'solana')
+            // Filter chain (supports variants like "monad" / "monad-testnet"), take top 20
+            const chainTokens = (data as Array<Record<string, unknown>>)
+                .filter((t) => String(t.chainId || '').toLowerCase().includes(chain))
                 .slice(0, 20);
 
-            return res.status(200).json(solTokens);
+            return res.status(200).json(chainTokens);
 
         } else if (action === 'token') {
             // Fetch single token details from DexScreener
@@ -34,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
 
             const response = await fetch(
-                `https://api.dexscreener.com/tokens/v1/solana/${mint}`,
+                `https://api.dexscreener.com/tokens/v1/${chain}/${mint}`,
                 { headers: { Accept: 'application/json' } },
             );
             if (!response.ok) {
@@ -52,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             // DexScreener supports multi-token lookup
             const response = await fetch(
-                `https://api.dexscreener.com/tokens/v1/solana/${mints.join(',')}`,
+                `https://api.dexscreener.com/tokens/v1/${chain}/${mints.join(',')}`,
                 { headers: { Accept: 'application/json' } },
             );
             if (!response.ok) {

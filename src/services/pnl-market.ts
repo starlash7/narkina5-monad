@@ -1,6 +1,6 @@
 // ============================================================================
 // Narkina5 PnL Arena — Market Data Service
-// Fetches real pump.fun / Solana token data via DexScreener proxy.
+// Fetches Monad ecosystem token data via DexScreener proxy.
 // ============================================================================
 
 import type { PumpToken } from './pnl-types';
@@ -28,6 +28,7 @@ function setCache<T>(key: string, data: T): void {
 
 const TRENDING_TTL = 5 * 60 * 1000;  // 5 minutes
 const PRICE_TTL = 30 * 1000;          // 30 seconds
+const MARKET_CHAIN = (import.meta.env.VITE_DEXSCREENER_CHAIN_ID as string | undefined) || 'monad';
 
 // ---------------------------------------------------------------------------
 // DexScreener response normalization
@@ -73,13 +74,13 @@ function pairToToken(pair: DexPair): PumpToken | null {
 // ---------------------------------------------------------------------------
 
 /**
- * Fetch trending Solana tokens (top 20 boosted on DexScreener).
+ * Fetch trending tokens for configured market chain.
  */
 export async function fetchTrendingTokens(): Promise<PumpToken[]> {
-    const cached = getCached<PumpToken[]>('trending', TRENDING_TTL);
+    const cached = getCached<PumpToken[]>(`trending:${MARKET_CHAIN}`, TRENDING_TTL);
     if (cached) return cached;
 
-    const res = await fetch('/api/market?action=trending');
+    const res = await fetch(`/api/market?action=trending&chain=${encodeURIComponent(MARKET_CHAIN)}`);
     if (!res.ok) throw new Error(`Market trending failed: ${res.status}`);
 
     const boosts: Array<{ tokenAddress?: string; chainId?: string }> = await res.json();
@@ -90,20 +91,22 @@ export async function fetchTrendingTokens(): Promise<PumpToken[]> {
         .filter((m): m is string => !!m)
         .slice(0, 20);
 
-    if (mints.length === 0) return [];
+    if (mints.length === 0) {
+        throw new Error(`No ${MARKET_CHAIN} tokens available from market feed`);
+    }
 
-    const tokens = await fetchTokensByMints(mints);
-    setCache('trending', tokens);
+    const tokens = await fetchTokensByMints(mints, MARKET_CHAIN);
+    setCache(`trending:${MARKET_CHAIN}`, tokens);
     return tokens;
 }
 
 /**
  * Fetch detailed info for multiple tokens by mint addresses.
  */
-export async function fetchTokensByMints(mints: string[]): Promise<PumpToken[]> {
+export async function fetchTokensByMints(mints: string[], chain = MARKET_CHAIN): Promise<PumpToken[]> {
     if (mints.length === 0) return [];
 
-    const res = await fetch(`/api/market?action=prices&mints=${mints.join(',')}`);
+    const res = await fetch(`/api/market?action=prices&chain=${encodeURIComponent(chain)}&mints=${mints.join(',')}`);
     if (!res.ok) throw new Error(`Market prices failed: ${res.status}`);
 
     const pairs: DexPair[] = await res.json();
@@ -134,7 +137,7 @@ export async function fetchTokenPrice(mint: string): Promise<number> {
     const cached = getCached<number>(`price:${mint}`, PRICE_TTL);
     if (cached !== null) return cached;
 
-    const res = await fetch(`/api/market?action=token&mint=${mint}`);
+    const res = await fetch(`/api/market?action=token&chain=${encodeURIComponent(MARKET_CHAIN)}&mint=${mint}`);
     if (!res.ok) throw new Error(`Market token failed: ${res.status}`);
 
     const pairs: DexPair[] = await res.json();
@@ -151,7 +154,7 @@ export async function fetchTokenPrice(mint: string): Promise<number> {
  */
 export async function refreshPrices(tokens: PumpToken[]): Promise<PumpToken[]> {
     const mints = tokens.map((t) => t.mint);
-    const fresh = await fetchTokensByMints(mints);
+    const fresh = await fetchTokensByMints(mints, MARKET_CHAIN);
 
     // Merge: keep old token data but update prices
     const priceMap = new Map(fresh.map((t) => [t.mint, t]));
